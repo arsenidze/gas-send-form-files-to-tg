@@ -1,0 +1,19 @@
+# npm
+node_modules
+
+# clasp files
+creds.json
+.clasp.json
+
+# certs
+*.pem
+certs/
+
+# build
+dist/
+
+# mac
+.DS_Store
+
+#secret
+.env
