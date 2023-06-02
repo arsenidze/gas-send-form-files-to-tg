@@ -27,7 +27,7 @@
     "prettier/prettier": "error",
     "react/prop-types": "warn",
     "camelcase": "warn",
-    "import/prefer-default-export": "warn",
+    "import/prefer-default-export": "off",
     "import/no-extraneous-dependencies": "warn",
     "prefer-object-spread": "warn",
     "import/extensions": [
@@ -39,7 +39,8 @@
         "ts": "never",
         "tsx": "never"
       }
-    ]
+    ],
+    "react/react-in-jsx-scope": "off"
   },
   "settings": {
     "react": {
