@@ -9,5 +9,6 @@
           ".clasp.json"
       ],
       "url": "http://json.schemastore.org/clasp"
-  }]
+  }],
+  "editor.formatOnSave": true
 }
