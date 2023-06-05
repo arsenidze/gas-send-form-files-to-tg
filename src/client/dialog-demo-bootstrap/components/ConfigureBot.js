@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Button } from 'react-bootstrap';
-import { Form } from 'react-router-dom';
+import { Button, Form } from 'react-bootstrap';
 import { serverFunctions } from '../../utils/serverFunctions';
 
 const config = {
   LABELS: {
     BOT_TOKEN: 'Токен бота',
+    BOT_USERNAME: 'Бот username',
+    BOT_FIRST_NAME: 'Бот first name',
   },
   ACTION_MSG: {
     ADD_TOKEN: 'Додати',
@@ -20,11 +21,14 @@ const config = {
 };
 
 export const ConfigureBot = ({ botInfo, setNewBotInfo }) => {
-  const [botToken, setBotToken] = useState(botInfo.token);
+  const [botToken, setBotToken] = useState(botInfo.token || '');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
   const onSubmit = async (e) => {
     e.preventDefault();
+
+    setErrorMsg('');
 
     if (botToken.trim() === '') {
       setErrorMsg(config.ERROR_MSGS.VALUE_IS_EMPTY);
@@ -32,15 +36,31 @@ export const ConfigureBot = ({ botInfo, setNewBotInfo }) => {
     }
 
     try {
-      const { data, error } = await serverFunctions.getBotInfo(botToken);
+      const { data: getMeResponse, error } = await serverFunctions.getBotInfo(
+        botToken
+      );
+      console.log({
+        getMeResponse,
+        error,
+      });
       if (error) {
         setErrorMsg(error);
+        return;
       }
 
-      setNewBotInfo(data);
+      setNewBotInfo({
+        token: botToken,
+        me: getMeResponse.result,
+      });
+      setIsButtonDisabled(true);
     } catch (err) {
       setErrorMsg(err.message);
     }
+  };
+
+  const onTokenInputChange = (e) => {
+    setBotToken(e.target.value);
+    setIsButtonDisabled(false);
   };
 
   return (
@@ -51,7 +71,7 @@ export const ConfigureBot = ({ botInfo, setNewBotInfo }) => {
           <Form.Control
             type="text"
             value={botToken}
-            onChange={(e) => setBotToken(e.target.value)}
+            onChange={onTokenInputChange}
             isInvalid={!!errorMsg}
           />
           <Form.Text className="text-muted">
@@ -62,16 +82,24 @@ export const ConfigureBot = ({ botInfo, setNewBotInfo }) => {
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Button variant="primary" type="submit">
+        {!!botInfo.token && (
+          <Form.Group className="mb-3">
+            <Form.Label>{config.LABELS.BOT_USERNAME}</Form.Label>
+            <Form.Control type="text" value={botInfo.me.username} disabled />
+          </Form.Group>
+        )}
+
+        {!!botInfo.token && (
+          <Form.Group className="mb-3">
+            <Form.Label>{config.LABELS.BOT_FIRST_NAME}</Form.Label>
+            <Form.Control type="text" value={botInfo.me.first_name} disabled />
+          </Form.Group>
+        )}
+
+        <Button disabled={isButtonDisabled} variant="primary" type="submit">
           {config.ACTION_MSG.ADD_TOKEN}
         </Button>
       </Form>
-
-      {!!botInfo.token && (
-        <div>
-          <pre>{JSON.stringify(botInfo)}</pre>
-        </div>
-      )}
     </div>
   );
 };

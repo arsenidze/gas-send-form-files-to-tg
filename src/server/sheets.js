@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax */
+import { getSpreadSheetConfiguration } from './storage';
+import { sendFilesToTgChat } from './telegramBotApi';
+
 const getSheetById = (ss, sheetId) => {
   const sheets = ss.getSheets();
   const sheet = sheets.find((s) => s.getSheetId() === sheetId);
@@ -67,7 +71,13 @@ export const getSpreadSheetInfo = (spreadSheetUrl) => {
 export const getSpreadSheetHeaders = (spreadSheetInfo) => {
   try {
     const ss = SpreadsheetApp.openById(spreadSheetInfo.spreadSheetId);
-    const sheet = getSheetById(ss, spreadSheetInfo.sheetId);
+    const { data: sheet, error } = getSheetById(
+      ss,
+      parseInt(spreadSheetInfo.sheetId, 10)
+    );
+    if (error) {
+      return { data: undefined, error };
+    }
     const range = sheet.getRange(1, 1, 1, sheet.getLastColumn());
     const headers = range.getValues()[0];
 
@@ -75,5 +85,76 @@ export const getSpreadSheetHeaders = (spreadSheetInfo) => {
   } catch (err) {
     Logger.log(err.message);
     return { data: undefined, error: err.message };
+  }
+};
+
+// {
+//   "namedValues": {
+//       "питання1": [
+//           "Option 1"
+//       ],
+//       "Email Address": [
+//           "arsenidze@urk.net"
+//       ],
+//       "Timestamp": [
+//           "6/3/2023 15:32:44"
+//       ],
+//       "питання2": [
+//           ""
+//       ],
+//       "питання з фото": [
+//           "https://drive.google.com/open?id=1TxpxBVqm2AyqxXP9O3-X2x6UvoxkIVuz, https://drive.google.com/open?id=10dSfUqWWLR8T_5uNYMFgFftesEy3psgA"
+//       ]
+//   },
+//   "range": {
+//       "columnEnd": 5,
+//       "columnStart": 1,
+//       "rowEnd": 14,
+//       "rowStart": 14
+//   },
+// }
+
+export const onSubmit = async (e) => {
+  try {
+    const responseSheet = e.range.getSheet();
+    const spreadSheet = responseSheet.getParent();
+
+    const spreadSheetInfo = {
+      spreadSheetId: spreadSheet.getId(),
+      sheetId: `${responseSheet.getSheetId()}`,
+    };
+    const { data: spreadSheetConfiguration, error } =
+      getSpreadSheetConfiguration(spreadSheetInfo);
+    if (error) {
+      Logger.log(error.message);
+      return;
+    }
+
+    const nonFlattenPromises = Object.entries(
+      spreadSheetConfiguration.columnToTgChatsMapping
+    ).map(([colName, chats]) => {
+      const newFilesUrls = e.namedValues[colName][0].split(', ');
+      const newFilesIds = newFilesUrls.map((url) => url.split('id=')[1]);
+      const newFilesBlobs = newFilesIds.map((id) =>
+        DriveApp.getFileById(id).getBlob()
+      );
+
+      return chats.map((chat) =>
+        sendFilesToTgChat(spreadSheetConfiguration.botInfo, chat, newFilesBlobs)
+      );
+    });
+
+    const flattenSendFilesPromises = Array.prototype.concat.apply(
+      [],
+      nonFlattenPromises
+    );
+
+    const sendFilesResults = await Promise.allSettled(flattenSendFilesPromises);
+
+    Logger.log(JSON.stringify(sendFilesResults));
+
+    // DriveApp.getFileById(fileId).setTrashed(true);
+  } catch (err) {
+    Logger.log(err.message);
   }
 };

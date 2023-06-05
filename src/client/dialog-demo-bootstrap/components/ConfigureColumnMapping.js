@@ -5,21 +5,27 @@ import { serverFunctions } from '../../utils/serverFunctions';
 const config = {
   ACTION_MSG: {
     ADD_NEW_MAPPING: 'Додати',
+    CHOOSE_COLUMN: 'Виберіть колонку',
+    CHOOSE_CHAT: 'Виберіть чат',
   },
   LABELS: {
     COLUMN_NAME: 'Колонка з таблиці',
     TG_CHAT_NAME: 'Телеграм канал',
+    EXISTING_MAPPING: 'Існуючі відповідності: ',
+    ADD_NEW_MAPPING: 'Додати нову відповідність',
   },
   ERROR_MSGS: {
     VALUE_IS_REQUIRED: 'Значення порожнє',
   },
 };
 
-export const ConfigureColumnMapping = (
+export const ConfigureColumnMapping = ({
+  botInfo,
   spreadSheetInfo,
   columnToTgChatsMapping,
-  setNewColumnMapping
-) => {
+  setNewColumnMapping,
+  setNewBotInfo,
+}) => {
   const [validated, setValidated] = useState(false);
   const [spreadSheetHeaders, setSpreadSheetHeaders] = useState([]);
   const [availableTelegramChats, setAvailableTelegramChats] = useState([]);
@@ -34,6 +40,7 @@ export const ConfigureColumnMapping = (
       );
       if (error) {
         setApiErrorMsg(error);
+        return;
       }
       setSpreadSheetHeaders(data);
     } catch (err) {
@@ -43,13 +50,21 @@ export const ConfigureColumnMapping = (
 
   const fetchAvailableTelegramChats = async () => {
     try {
-      const { data, error } = await serverFunctions.getSpreadSheetHeaders(
-        spreadSheetInfo
-      );
+      const { data: newBotInfo, error } =
+        await serverFunctions.updateAvailableTelegramChats(botInfo);
+      console.log({
+        newBotInfo,
+        error,
+      });
       if (error) {
         setApiErrorMsg(error);
+        return;
       }
-      setAvailableTelegramChats(data);
+      await setNewBotInfo(newBotInfo);
+
+      const availableChats = Object.values(newBotInfo.availableChatsDict);
+
+      setAvailableTelegramChats(availableChats);
     } catch (err) {
       setApiErrorMsg(err.message);
     }
@@ -60,22 +75,42 @@ export const ConfigureColumnMapping = (
     fetchAvailableTelegramChats();
   }, []);
 
+  // const getChatLabel = (chat) => {
+  //   return chat.title || chat.username || chat.id;
+  // };
+
   const addNewMapping = async () => {
     const newColumnToTgChatsMapping = { ...columnToTgChatsMapping };
+    const chat = availableTelegramChats.find(
+      (c) => c.display_label === chatName
+    );
     if (!newColumnToTgChatsMapping[columnName]) {
-      newColumnToTgChatsMapping[columnName] = [chatName];
+      newColumnToTgChatsMapping[columnName] = [chat];
     } else {
+      if (
+        newColumnToTgChatsMapping[columnName].find(
+          (c) => c.display_label === chatName
+        )
+      ) {
+        return;
+      }
       newColumnToTgChatsMapping[columnName] = [
         ...newColumnToTgChatsMapping[columnName],
-        chatName,
+        chat,
       ];
     }
+    console.log(newColumnToTgChatsMapping);
     await setNewColumnMapping(newColumnToTgChatsMapping);
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
+
+    console.log({
+      columnName,
+      chatName,
+    });
 
     if (form.checkValidity()) {
       console.log('Form is valid');
@@ -93,20 +128,24 @@ export const ConfigureColumnMapping = (
     <div>
       {!!apiErrorMsg && apiErrorMsg}
 
-      <ListGroup>
+      <h6>{config.LABELS.EXISTING_MAPPING}</h6>
+      <ListGroup className="mb-3">
         {Object.entries(columnToTgChatsMapping).map(([col, chats], idx) => (
           <ListGroup.Item
             key={idx}
             className="d-flex justify-content-start align-items-center"
           >
-            <span>{`Колонка: ${col} -> `}</span>
+            <span>
+              {col}&nbsp;&nbsp;{'->'}&nbsp;&nbsp;
+            </span>
             {chats.map((chat, i) => [
-              i > 0 && ', ',
-              <span key={i}>{chat}</span>,
+              i > 0 && <span>{', '}&nbsp;</span>,
+              <span key={i}>{chat.display_label}</span>,
             ])}
           </ListGroup.Item>
         ))}
       </ListGroup>
+      <h6>{config.LABELS.ADD_NEW_MAPPING}</h6>
       <Form noValidate validated={validated} onSubmit={onSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>{config.LABELS.COLUMN_NAME}</Form.Label>
@@ -116,6 +155,7 @@ export const ConfigureColumnMapping = (
             required
             aria-label="Select column"
           >
+            <option value="">{config.ACTION_MSG.CHOOSE_COLUMN}</option>
             {spreadSheetHeaders.map((value, idx) => (
               <option key={idx} value={value}>
                 {value}
@@ -134,9 +174,10 @@ export const ConfigureColumnMapping = (
             required
             aria-label="Select chat"
           >
-            {availableTelegramChats.map((value, idx) => (
-              <option key={idx} value={value}>
-                {value}
+            <option value="">{config.ACTION_MSG.CHOOSE_CHAT}</option>
+            {availableTelegramChats.map((chat, idx) => (
+              <option key={idx} value={chat.display_label}>
+                {chat.display_label}
               </option>
             ))}
           </Form.Select>
@@ -146,7 +187,7 @@ export const ConfigureColumnMapping = (
         </Form.Group>
 
         <Button variant="primary" type="submit">
-          {config.ACTION_MSG.ADD_TOKEN}
+          {config.ACTION_MSG.ADD_NEW_MAPPING}
         </Button>
       </Form>
     </div>

@@ -3,11 +3,6 @@ const config = {
   ACTIVE_SPREADSHEETS_KEY: 'ACTIVE_SPREADSHEETS_KEY',
 };
 
-// const properties = {
-//   sheets,
-//   configurations,
-// };
-
 export const getActiveSpreadSheets = () => {
   try {
     const properties = PropertiesService.getScriptProperties();
@@ -62,8 +57,8 @@ export const getSpreadSheetConfiguration = (spreadSheetInfo) => {
     const configurations = JSON.parse(configurationsAsStr);
     const spreadSheetConfiguration = configurations.find(
       (cfg) =>
-        cfg.spreadSheetId === spreadSheetInfo.spreadSheetId &&
-        cfg.sheetId === spreadSheetInfo.sheetId
+        cfg.spreadSheetInfo.spreadSheetId === spreadSheetInfo.spreadSheetId &&
+        cfg.spreadSheetInfo.sheetId === spreadSheetInfo.sheetId
     );
 
     return { data: spreadSheetConfiguration, error: undefined };
@@ -86,10 +81,20 @@ export const setSpreadSheetConfiguration = (spreadSheetConfiguration) => {
       );
     } else {
       const configurations = JSON.parse(configurationsAsStr);
-      configurations.push(spreadSheetConfiguration);
+      const newConfigurations = configurations.map((cfg) => {
+        if (
+          cfg.spreadSheetInfo.spreadSheetId ===
+            spreadSheetConfiguration.spreadSheetInfo.spreadSheetId &&
+          cfg.spreadSheetInfo.sheetId ===
+            spreadSheetConfiguration.spreadSheetInfo.sheetId
+        ) {
+          return spreadSheetConfiguration;
+        }
+        return cfg;
+      });
       properties.setProperty(
         config.SPREADSHEET_CONFIGURATION,
-        JSON.stringify(configurations)
+        JSON.stringify(newConfigurations)
       );
     }
 

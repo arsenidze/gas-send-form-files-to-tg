@@ -1,6 +1,6 @@
 import { onOpen, openDialogBootstrap } from './ui';
 
-import { getSpreadSheetInfo, getSpreadSheetHeaders } from './sheets';
+import { getSpreadSheetInfo, getSpreadSheetHeaders, onSubmit } from './sheets';
 import {
   getActiveSpreadSheets,
   setActiveSpreadSheets,
@@ -8,7 +8,7 @@ import {
   setSpreadSheetConfiguration,
 } from './storage';
 
-import { getBotInfo } from './telegramBotApi';
+import { getBotInfo, updateAvailableTelegramChats } from './telegramBotApi';
 
 // Public functions must be exported as named exports
 export {
@@ -21,4 +21,6 @@ export {
   getSpreadSheetConfiguration,
   setSpreadSheetConfiguration,
   getBotInfo,
+  updateAvailableTelegramChats,
+  onSubmit,
 };

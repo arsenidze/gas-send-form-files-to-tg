@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Modal } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { serverFunctions } from '../../utils/serverFunctions';
@@ -21,20 +21,36 @@ export const SpreadsheetConfiguration = () => {
   const [showConfigureColumnMappingModal, setShowConfigureColumnMappingModal] =
     useState(false);
   const { spreadSheetId, sheetId } = useParams();
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const isBotConfigurationDisabled = useMemo(() => !isLoaded, [isLoaded]);
+  const isColMappingDisabled = useMemo(
+    () => !isLoaded || !spreadSheetConfiguration?.botInfo?.token,
+    [isLoaded, spreadSheetConfiguration]
+  );
 
   const fetchSpreadSheetConfiguration = async () => {
+    console.log({
+      spreadSheetId,
+      sheetId,
+    });
     try {
       const { data: spreadSheetConfigurationFromStorage, error } =
         await serverFunctions.getSpreadSheetConfiguration({
           spreadSheetId,
           sheetId,
         });
+      console.log({
+        spreadSheetConfigurationFromStorage,
+        error,
+      });
       if (error) {
         setApiErrorMsg(error);
         return;
       }
 
       setSpreadSheetConfiguration(spreadSheetConfigurationFromStorage);
+      setIsLoaded(true);
     } catch (err) {
       setApiErrorMsg(err.message);
     }
@@ -87,10 +103,16 @@ export const SpreadsheetConfiguration = () => {
       {!!apiErrorMsg && apiErrorMsg}
 
       <div className="d-grid gap-3">
-        <Button onClick={openConfigureBotModal}>
+        <Button
+          disabled={isBotConfigurationDisabled}
+          onClick={openConfigureBotModal}
+        >
           {config.ACTION_MSG.CONFIGURE_BOT}
         </Button>
-        <Button onClick={openConfigureColumnMappingModal}>
+        <Button
+          disabled={isColMappingDisabled}
+          onClick={openConfigureColumnMappingModal}
+        >
           {config.ACTION_MSG.CONFIGURE_COLUMN_MAPPING}
         </Button>
         <Button onClick={goBack}>{config.ACTION_MSG.GO_BACK}</Button>
@@ -122,11 +144,13 @@ export const SpreadsheetConfiguration = () => {
         </Modal.Header>
         <Modal.Body>
           <ConfigureColumnMapping
+            botInfo={spreadSheetConfiguration.botInfo}
             spreadSheetInfo={spreadSheetConfiguration.spreadSheetInfo}
             columnToTgChatsMapping={
               spreadSheetConfiguration.columnToTgChatsMapping
             }
             setNewColumnMapping={setNewColumnMapping}
+            setNewBotInfo={setNewBotInfo}
           />
         </Modal.Body>
       </Modal>
