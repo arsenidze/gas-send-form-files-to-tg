@@ -7,6 +7,7 @@ import {
   getSpreadSheetConfiguration,
   setSpreadSheetConfiguration,
 } from './storage';
+import { deleteFormFilesFromGDrive } from './drive';
 
 import { getBotInfo, updateAvailableTelegramChats } from './telegramBotApi';
 
@@ -20,7 +21,8 @@ export {
   setActiveSpreadSheets,
   getSpreadSheetConfiguration,
   setSpreadSheetConfiguration,
+  onSubmit,
+  deleteFormFilesFromGDrive,
   getBotInfo,
   updateAvailableTelegramChats,
-  onSubmit,
 };

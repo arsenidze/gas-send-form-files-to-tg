@@ -89,10 +89,10 @@ export const SpreadsheetConfiguration = () => {
     setSpreadSheetConfiguration(newSsConfiguration);
   };
 
-  const setNewColumnMapping = async (newColumnToTgChatsMapping) => {
+  const setNewColumnToTgChatsMappings = async (newColumnToTgChatsMappings) => {
     const newSsConfiguration = {
       ...spreadSheetConfiguration,
-      columnToTgChatsMapping: newColumnToTgChatsMapping,
+      columnToTgChatsMappings: newColumnToTgChatsMappings,
     };
     await serverFunctions.setSpreadSheetConfiguration(newSsConfiguration);
     setSpreadSheetConfiguration(newSsConfiguration);
@@ -146,10 +146,10 @@ export const SpreadsheetConfiguration = () => {
           <ConfigureColumnMapping
             botInfo={spreadSheetConfiguration.botInfo}
             spreadSheetInfo={spreadSheetConfiguration.spreadSheetInfo}
-            columnToTgChatsMapping={
-              spreadSheetConfiguration.columnToTgChatsMapping
+            columnToTgChatsMappings={
+              spreadSheetConfiguration.columnToTgChatsMappings
             }
-            setNewColumnMapping={setNewColumnMapping}
+            setNewColumnToTgChatsMappings={setNewColumnToTgChatsMappings}
             setNewBotInfo={setNewBotInfo}
           />
         </Modal.Body>

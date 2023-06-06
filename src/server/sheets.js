@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax */
+import { deleteFormFilesFromGDrive } from './drive';
 import { getSpreadSheetConfiguration } from './storage';
 import { sendFilesToTgChat } from './telegramBotApi';
 
@@ -114,8 +115,26 @@ export const getSpreadSheetHeaders = (spreadSheetInfo) => {
 //   },
 // }
 
+/**
+ * Steps:
+ * - get spreadSheet + sheet info using onSubmit event
+ * - get spreadSheetConfiguration using spreadSheet + sheet
+ * - get mappings - what field put in what chat - using spreadSheetConfiguration
+ * - for each field from mapping:
+ * -     for each chat from the field's mapping:
+ * -         send files that are stored in onSubmit event by field's name to chat
+ * -     delete files from gdrive
+ */
 export const onSubmit = async (e) => {
+  const PROCESSING_STATUSES = {
+    START: 'START',
+    CONFIGURATION_IS_FETCHED: 'CONFIGURATION_IS_FETCHED',
+  };
   try {
+    const processingStatus = {
+      stepFinished: PROCESSING_STATUSES.START,
+      errorMsg: undefined,
+    };
     const responseSheet = e.range.getSheet();
     const spreadSheet = responseSheet.getParent();
 
@@ -127,33 +146,58 @@ export const onSubmit = async (e) => {
       getSpreadSheetConfiguration(spreadSheetInfo);
     if (error) {
       Logger.log(error.message);
+      processingStatus.errorMsg = error.message;
       return;
     }
+    processingStatus.stepFinished =
+      PROCESSING_STATUSES.CONFIGURATION_IS_FETCHED;
 
-    const nonFlattenPromises = Object.entries(
-      spreadSheetConfiguration.columnToTgChatsMapping
-    ).map(([colName, chats]) => {
-      const newFilesUrls = e.namedValues[colName][0].split(', ');
-      const newFilesIds = newFilesUrls.map((url) => url.split('id=')[1]);
-      const newFilesBlobs = newFilesIds.map((id) =>
-        DriveApp.getFileById(id).getBlob()
-      );
+    const columnToTgChatsMappingsGroupedByCol =
+      spreadSheetConfiguration.columnToTgChatsMappings.reduce((acc, curr) => {
+        if (!acc[curr.columnName]) {
+          acc[curr.columnName] = [curr];
+        } else {
+          acc[curr.columnName].push(curr);
+        }
 
-      return chats.map((chat) =>
-        sendFilesToTgChat(spreadSheetConfiguration.botInfo, chat, newFilesBlobs)
-      );
-    });
+        return acc;
+      }, {});
 
-    const flattenSendFilesPromises = Array.prototype.concat.apply(
-      [],
-      nonFlattenPromises
+    Logger.log(columnToTgChatsMappingsGroupedByCol);
+
+    const sendFilesResults = await Promise.allSettled(
+      Object.entries(columnToTgChatsMappingsGroupedByCol).map(
+        async ([columnName, mappings]) => {
+          const newFilesUrls = e.namedValues[columnName][0].split(', ');
+          const newFilesIds = newFilesUrls.map((url) => url.split('id=')[1]);
+          const newFilesBlobs = newFilesIds.map((id) =>
+            DriveApp.getFileById(id).getBlob()
+          );
+
+          const sendFilesResultsForCol = await Promise.allSettled(
+            mappings.map((mapping) => {
+              return sendFilesToTgChat({
+                botInfo: spreadSheetConfiguration.botInfo,
+                chat: mapping.chat,
+                filesBlobs: newFilesBlobs,
+                notificationMsg: mapping.notificationMsg,
+              });
+            })
+          );
+          deleteFormFilesFromGDrive(newFilesIds);
+
+          return sendFilesResultsForCol;
+        }
+      )
     );
 
-    const sendFilesResults = await Promise.allSettled(flattenSendFilesPromises);
+    const flattenSendFilesResults = Array.prototype.concat.apply(
+      [],
+      sendFilesResults
+    );
 
-    Logger.log(JSON.stringify(sendFilesResults));
-
-    // DriveApp.getFileById(fileId).setTrashed(true);
+    Logger.log(JSON.stringify(JSON.stringify(sendFilesResults)));
+    Logger.log(JSON.stringify(JSON.stringify(flattenSendFilesResults)));
   } catch (err) {
     Logger.log(err.message);
   }

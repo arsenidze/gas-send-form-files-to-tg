@@ -62,18 +62,24 @@ export const updateAvailableTelegramChats = (botInfo) => {
   }
 };
 
-export const sendFilesToTgChat = async (botInfo, chat, newFilesBlobs) => {
+export const sendFilesToTgChat = async ({
+  botInfo,
+  chat,
+  filesBlobs,
+  notificationMsg,
+}) => {
   try {
     const url = `${config.TELEGRAM_API_BASE_URL}${botInfo.token}/sendMediaGroup`;
     const formData = {
       chat_id: `${chat.id}`,
       media: JSON.stringify(
-        newFilesBlobs.map((_, idx) => ({
-          type: 'photo',
+        filesBlobs.map((_, idx) => ({
+          type: 'document',
+          caption: idx === 0 ? notificationMsg : undefined,
           media: `attach://photo${idx + 1}`,
         }))
       ),
-      ...newFilesBlobs.reduce((acc, curr, idx) => {
+      ...filesBlobs.reduce((acc, curr, idx) => {
         acc[`photo${idx + 1}`] = curr;
 
         return acc;

@@ -39,6 +39,10 @@ export const setActiveSpreadSheets = (spreadSheets = []) => {
 };
 
 export const getSpreadSheetConfiguration = (spreadSheetInfo) => {
+  const defaultValues = {
+    botInfo: {},
+    columnToTgChatsMappings: [],
+  };
   try {
     const properties = PropertiesService.getScriptProperties();
     const configurationsAsStr = properties.getProperty(
@@ -47,9 +51,8 @@ export const getSpreadSheetConfiguration = (spreadSheetInfo) => {
     if (!configurationsAsStr) {
       return {
         data: {
-          botInfo: {},
           spreadSheetInfo,
-          columnToTgChatsMapping: {},
+          ...defaultValues,
         },
         error: undefined,
       };

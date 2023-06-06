@@ -10,25 +10,28 @@ const config = {
   },
   LABELS: {
     COLUMN_NAME: 'Колонка з таблиці',
-    TG_CHAT_NAME: 'Телеграм канал',
+    TG_CHAT_NAME: 'Телеграм чат',
+    NOTIFICATION_MSG: 'Текст повідомлення',
     EXISTING_MAPPING: 'Існуючі відповідності: ',
     ADD_NEW_MAPPING: 'Додати нову відповідність',
   },
   ERROR_MSGS: {
     VALUE_IS_REQUIRED: 'Значення порожнє',
+    VALUES_ALREADY_EXISTS: 'Значення вже існує',
   },
 };
 
 export const ConfigureColumnMapping = ({
   botInfo,
   spreadSheetInfo,
-  columnToTgChatsMapping,
-  setNewColumnMapping,
+  columnToTgChatsMappings,
+  setNewColumnToTgChatsMappings,
   setNewBotInfo,
 }) => {
   const [validated, setValidated] = useState(false);
   const [spreadSheetHeaders, setSpreadSheetHeaders] = useState([]);
   const [availableTelegramChats, setAvailableTelegramChats] = useState([]);
+  const [notificationMsg, setNotificationMsg] = useState('');
   const [apiErrorMsg, setApiErrorMsg] = useState('');
   const [columnName, setColumnName] = useState('');
   const [chatName, setChatName] = useState('');
@@ -75,32 +78,31 @@ export const ConfigureColumnMapping = ({
     fetchAvailableTelegramChats();
   }, []);
 
-  // const getChatLabel = (chat) => {
-  //   return chat.title || chat.username || chat.id;
-  // };
-
   const addNewMapping = async () => {
-    const newColumnToTgChatsMapping = { ...columnToTgChatsMapping };
     const chat = availableTelegramChats.find(
       (c) => c.display_label === chatName
     );
-    if (!newColumnToTgChatsMapping[columnName]) {
-      newColumnToTgChatsMapping[columnName] = [chat];
-    } else {
-      if (
-        newColumnToTgChatsMapping[columnName].find(
-          (c) => c.display_label === chatName
-        )
-      ) {
-        return;
-      }
-      newColumnToTgChatsMapping[columnName] = [
-        ...newColumnToTgChatsMapping[columnName],
-        chat,
-      ];
+    const newMapping = {
+      columnName,
+      chat,
+      notificationMsg,
+    };
+
+    if (
+      columnToTgChatsMappings.find(
+        (mapping) =>
+          mapping.columnName === newMapping.columnName &&
+          mapping.chat.display_label === newMapping.chat.display_label
+      )
+    ) {
+      setApiErrorMsg(config.ERROR_MSGS.VALUES_ALREADY_EXISTS);
+      return;
     }
-    console.log(newColumnToTgChatsMapping);
-    await setNewColumnMapping(newColumnToTgChatsMapping);
+
+    const newColumnToTgChatsMappings = [...columnToTgChatsMappings, newMapping];
+
+    console.log(newColumnToTgChatsMappings);
+    await setNewColumnToTgChatsMappings(newColumnToTgChatsMappings);
   };
 
   const onSubmit = async (e) => {
@@ -110,6 +112,7 @@ export const ConfigureColumnMapping = ({
     console.log({
       columnName,
       chatName,
+      notificationMsg,
     });
 
     if (form.checkValidity()) {
@@ -118,6 +121,7 @@ export const ConfigureColumnMapping = ({
       setValidated(false);
       setColumnName('');
       setChatName('');
+      setNotificationMsg('');
     } else {
       console.log('Form is invalid');
       setValidated(true);
@@ -130,18 +134,33 @@ export const ConfigureColumnMapping = ({
 
       <h6>{config.LABELS.EXISTING_MAPPING}</h6>
       <ListGroup className="mb-3">
-        {Object.entries(columnToTgChatsMapping).map(([col, chats], idx) => (
+        {columnToTgChatsMappings.map((mapping, idx) => (
           <ListGroup.Item
             key={idx}
             className="d-flex justify-content-start align-items-center"
           >
-            <span>
-              {col}&nbsp;&nbsp;{'->'}&nbsp;&nbsp;
-            </span>
-            {chats.map((chat, i) => [
-              i > 0 && <span>{', '}&nbsp;</span>,
-              <span key={i}>{chat.display_label}</span>,
-            ])}
+            <Form onSubmit={(e) => e.preventDefault()}>
+              <Form.Group className="mb-1">
+                <Form.Label>{config.LABELS.COLUMN_NAME}</Form.Label>
+                <Form.Control disabled type="text" value={mapping.columnName} />
+              </Form.Group>
+              <Form.Group className="mb-1">
+                <Form.Label>{config.LABELS.TG_CHAT_NAME}</Form.Label>
+                <Form.Control
+                  disabled
+                  type="text"
+                  value={mapping.chat.display_label}
+                />
+              </Form.Group>
+              <Form.Group className="mb-1">
+                <Form.Label>{config.LABELS.NOTIFICATION_MSG}</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  disabled
+                  value={mapping.notificationMsg}
+                />
+              </Form.Group>
+            </Form>
           </ListGroup.Item>
         ))}
       </ListGroup>
@@ -181,6 +200,18 @@ export const ConfigureColumnMapping = ({
               </option>
             ))}
           </Form.Select>
+          <Form.Control.Feedback type="invalid">
+            {config.ERROR_MSGS.VALUE_IS_REQUIRED}
+          </Form.Control.Feedback>
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>{config.LABELS.NOTIFICATION_MSG}</Form.Label>
+          <Form.Control
+            type="text"
+            value={notificationMsg}
+            onChange={(e) => setNotificationMsg(e.target.value)}
+            required
+          />
           <Form.Control.Feedback type="invalid">
             {config.ERROR_MSGS.VALUE_IS_REQUIRED}
           </Form.Control.Feedback>
