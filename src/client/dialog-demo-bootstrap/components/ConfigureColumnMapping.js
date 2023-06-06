@@ -7,6 +7,7 @@ const config = {
     ADD_NEW_MAPPING: 'Додати',
     CHOOSE_COLUMN: 'Виберіть колонку',
     CHOOSE_CHAT: 'Виберіть чат',
+    DELETE_MAPPING: 'Видалити',
   },
   LABELS: {
     COLUMN_NAME: 'Колонка з таблиці',
@@ -128,6 +129,13 @@ export const ConfigureColumnMapping = ({
     }
   };
 
+  const deleteMapping = async (mapping) => {
+    const newColumnToTgChatsMappings = columnToTgChatsMappings.filter(
+      (m) => m !== mapping
+    );
+    await setNewColumnToTgChatsMappings(newColumnToTgChatsMappings);
+  };
+
   return (
     <div>
       {!!apiErrorMsg && apiErrorMsg}
@@ -160,6 +168,12 @@ export const ConfigureColumnMapping = ({
                   value={mapping.notificationMsg}
                 />
               </Form.Group>
+              <Button
+                variant="danger"
+                onClick={() => deleteMapping(mapping, idx)}
+              >
+                {config.ACTION_MSG.DELETE_MAPPING}
+              </Button>
             </Form>
           </ListGroup.Item>
         ))}

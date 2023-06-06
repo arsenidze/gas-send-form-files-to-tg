@@ -141,7 +141,7 @@ export const setSpreadSheetConfiguration = (spreadSheetConfiguration) => {
 
     const isOnSubmitTriggerAddRequired =
       spreadSheetConfiguration.columnToTgChatsMappings.length > 0 &&
-      !spreadSheetConfiguration.onSubmitTrigger?.uniqueId;
+      !spreadSheetConfiguration.onSubmitTrigger.uniqueId;
 
     if (isOnSubmitTriggerAddRequired) {
       createOnSubmitTrigger(spreadSheetConfiguration);

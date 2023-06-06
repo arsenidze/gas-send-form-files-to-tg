@@ -95,7 +95,18 @@ export const SpreadsheetConfiguration = () => {
       columnToTgChatsMappings: newColumnToTgChatsMappings,
     };
     await serverFunctions.setSpreadSheetConfiguration(newSsConfiguration);
-    setSpreadSheetConfiguration(newSsConfiguration);
+    // configuration from storage is received since during mappings update
+    // new values can be added to the configuration object and therefore should be loaded to client
+    const { data: newSsConfigurationFromStorage, error } =
+      await serverFunctions.getSpreadSheetConfiguration({
+        spreadSheetId,
+        sheetId,
+      });
+    if (error) {
+      setApiErrorMsg(error.message);
+      return;
+    }
+    setSpreadSheetConfiguration(newSsConfigurationFromStorage);
   };
 
   return (
