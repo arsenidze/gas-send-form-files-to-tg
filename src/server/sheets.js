@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax */
+import Mustache from 'mustache';
 import { deleteFormFilesFromGDrive } from './drive';
 import { getSpreadSheetConfiguration } from './storage';
 import { sendFilesToTgChat } from './telegramBotApi';
@@ -115,6 +116,36 @@ export const getSpreadSheetHeaders = (spreadSheetInfo) => {
 //   },
 // }
 
+function convertNumToCharIndex(num) {
+  return String.fromCharCode((num % 26) + 'A'.charCodeAt(0));
+}
+
+const patchNotificationMsg = (notificationMsg, substituteValues) => {
+  /**
+   * examples:
+   * notificationMsg - It is message from {A}, it found {B} items
+   * substituteValues - ['John', '10']
+   */
+
+  if (!notificationMsg.includes('{{')) {
+    return notificationMsg;
+  }
+
+  const substituteNames = new Array(substituteValues.length)
+    .fill(0)
+    .map((_, idx) => convertNumToCharIndex(idx));
+
+  const view = substituteNames.reduce((acc, curr, idx) => {
+    acc[curr] = substituteValues[idx];
+
+    return acc;
+  }, {});
+
+  const output = Mustache.render(notificationMsg, view);
+
+  return output;
+};
+
 /**
  * Steps:
  * - get spreadSheet + sheet info using onSubmit event
@@ -169,6 +200,9 @@ export const onSubmit = async (e) => {
       Object.entries(columnToTgChatsMappingsGroupedByCol).map(
         async ([columnName, mappings]) => {
           const newFilesUrls = e.namedValues[columnName][0].split(', ');
+          if (newFilesUrls.length === 0) {
+            return null;
+          }
           const newFilesIds = newFilesUrls.map((url) => url.split('id=')[1]);
           const newFilesBlobs = newFilesIds.map((id) =>
             DriveApp.getFileById(id).getBlob()
@@ -180,7 +214,10 @@ export const onSubmit = async (e) => {
                 botInfo: spreadSheetConfiguration.botInfo,
                 chat: mapping.chat,
                 filesBlobs: newFilesBlobs,
-                notificationMsg: mapping.notificationMsg,
+                notificationMsg: patchNotificationMsg(
+                  mapping.notificationMsg,
+                  e.values
+                ),
               });
             })
           );
