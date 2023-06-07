@@ -7,6 +7,7 @@ const config = {
     BOT_TOKEN: 'Токен бота',
     BOT_USERNAME: 'Бот username',
     BOT_FIRST_NAME: 'Бот first name',
+    BOT_LINK: 'Посилання на бота',
   },
   ACTION_MSG: {
     ADD_TOKEN: 'Додати',
@@ -93,6 +94,20 @@ export const ConfigureBot = ({ botInfo, setNewBotInfo }) => {
           <Form.Group className="mb-3">
             <Form.Label>{config.LABELS.BOT_FIRST_NAME}</Form.Label>
             <Form.Control type="text" value={botInfo.me.first_name} disabled />
+          </Form.Group>
+        )}
+
+        {!!botInfo.token && (
+          <Form.Group className="mb-3">
+            <Form.Label>{config.LABELS.BOT_LINK}</Form.Label>
+            <Form.Text>
+              <br />
+              <a
+                href={`http://t.me/${botInfo.me.username}`}
+                target="_blank"
+                rel="noreferrer"
+              >{`http://t.me/${botInfo.me.username}`}</a>{' '}
+            </Form.Text>
           </Form.Group>
         )}
 

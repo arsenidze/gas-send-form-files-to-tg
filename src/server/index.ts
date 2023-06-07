@@ -1,4 +1,4 @@
-import { onOpen, openDialogBootstrap } from './ui';
+import { onOpen, openDialogBootstrap, doGet } from './ui';
 
 import { getSpreadSheetInfo, getSpreadSheetHeaders, onSubmit } from './sheets';
 import {
@@ -14,6 +14,7 @@ import { getBotInfo, updateAvailableTelegramChats } from './telegramBotApi';
 // Public functions must be exported as named exports
 export {
   onOpen,
+  doGet,
   openDialogBootstrap,
   getSpreadSheetInfo,
   getSpreadSheetHeaders,

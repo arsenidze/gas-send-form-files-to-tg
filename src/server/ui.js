@@ -1,7 +1,7 @@
 export const onOpen = () => {
   const menu = SpreadsheetApp.getUi()
-    .createMenu('My Sample React Project') // edit me!
-    .addItem('Sheet Editor (Bootstrap)', 'openDialogBootstrap')
+    .createMenu('Помічник') // edit me!
+    .addItem('Налаштувати форму', 'openDialogBootstrap');
 
   menu.addToUi();
 };
@@ -11,4 +11,8 @@ export const openDialogBootstrap = () => {
     .setWidth(600)
     .setHeight(600);
   SpreadsheetApp.getUi().showModalDialog(html, 'Sheet Editor (Bootstrap)');
+};
+
+export const doGet = () => {
+  return HtmlService.createHtmlOutputFromFile('dialog-demo-bootstrap');
 };
